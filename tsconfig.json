@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "ES2019",
+    "module": "commonjs",
+    "rootDir": "apps/server/src",
+    "outDir": "dist/apps/server",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "sourceMap": true,
+    "experimentalDecorators": true
+  },
+  "include": ["apps/server/src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}
