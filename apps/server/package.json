@@ -1,0 +1,24 @@
+{
+  "name": "didactic-robot-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/index.js",
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts"
+  },
+  "dependencies": {
+    "@colyseus/schema": "^2.0.21",
+    "@colyseus/ws-transport": "^0.15.14",
+    "colyseus": "^0.15.16",
+    "didactic-robot-shared": "workspace:*",
+    "nanoid": "^5.0.6"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.1",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.4.5"
+  }
+}

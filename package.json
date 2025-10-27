@@ -1,0 +1,14 @@
+{
+  "name": "didactic-robot",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "packages/shared",
+    "apps/server",
+    "apps/client"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace packages/shared && npm run build --workspace apps/server && npm run build --workspace apps/client",
+    "start": "npm run start --workspace apps/server"
+  }
+}
