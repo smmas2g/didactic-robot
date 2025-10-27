@@ -1,0 +1,27 @@
+{
+  "root": true,
+  "ignorePatterns": ["node_modules", "dist", ".next", "*.config.js", "*.config.cjs"],
+  "extends": ["eslint:recommended"],
+  "parserOptions": {
+    "ecmaVersion": 2021,
+    "sourceType": "module"
+  },
+  "overrides": [
+    {
+      "files": ["apps/web/**/*.{js,jsx,ts,tsx}"],
+      "extends": ["next/core-web-vitals"]
+    },
+    {
+      "files": ["apps/server/**/*.{js,jsx,ts,tsx}"],
+      "env": {
+        "node": true
+      }
+    },
+    {
+      "files": ["packages/**/*.{js,jsx,ts,tsx}"],
+      "env": {
+        "node": true
+      }
+    }
+  ]
+}
