@@ -8,6 +8,10 @@
     "moduleResolution": "NodeNext",
     "resolveJsonModule": true,
     "types": ["node"],
+    "baseUrl": ".",
+    "paths": {
+      "@didactic-robot/types": ["../../packages/types/src"]
+    },
     "plugins": [
       {
         "name": "next"
@@ -21,14 +25,5 @@
     "**/*.cjs",
     "**/*.mjs"
   ],
-  "extends": "../../tsconfig.base.json",
-  "compilerOptions": {
-    "baseUrl": ".",
-    "paths": {
-      "@didactic-robot/types": ["../../packages/types/src"]
-    },
-    "types": ["node"]
-  },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
   "exclude": ["node_modules"]
 }

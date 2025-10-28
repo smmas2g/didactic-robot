@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { RoomMessage } from "@didactic/types";
+import type { RoomMessage } from "@didactic-robot/types";
 
 const sampleMessage: RoomMessage<string> = {
   type: "welcome",

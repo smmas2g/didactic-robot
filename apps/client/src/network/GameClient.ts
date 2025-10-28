@@ -1,5 +1,5 @@
 import Colyseus, { Room } from "colyseus.js";
-import type { InputIntent } from "didactic-robot-shared";
+import type { InputIntent } from "@didactic-robot/shared";
 import { InterpolatedPlayer } from "./InterpolatedPlayer.js";
 import type { OrbState } from "./OrbState.js";
 

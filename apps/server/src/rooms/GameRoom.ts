@@ -33,7 +33,7 @@ export class GameRoom extends Room<World> {
     this.state.enqueueIntent(client.sessionId, intent);
 import { Room, Client } from "colyseus";
 import { Schema, type, MapSchema } from "@colyseus/schema";
-import type { PlayerId } from "@didactic/types";
+import type { PlayerId } from "@didactic-robot/types";
 
 class Player extends Schema {
   @type("string")
