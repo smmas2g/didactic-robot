@@ -15,4 +15,10 @@
   },
   "include": ["src/**/*"],
   "exclude": ["dist", "node_modules"]
+    "types": ["node"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"]
 }
