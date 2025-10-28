@@ -25,7 +25,7 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@didactic-robot/types": ["../../packages/types/src"]
+      "@didactic/types": ["../../packages/types/src"]
     },
     "types": ["node"]
   },
