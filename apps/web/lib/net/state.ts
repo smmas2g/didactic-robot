@@ -1,11 +1,11 @@
 "use client";
 
 import { create } from "zustand";
-import type { GameStateSnapshot } from "@didactic-robot/types";
+import type { ClientStateSnapshot } from "@didactic-robot/types";
 
 interface GameStore {
-  snapshot: GameStateSnapshot | null;
-  setSnapshot: (snapshot: GameStateSnapshot | null) => void;
+  snapshot: ClientStateSnapshot | null;
+  setSnapshot: (snapshot: ClientStateSnapshot | null) => void;
 }
 
 export const useGameStore = create<GameStore>((set) => ({

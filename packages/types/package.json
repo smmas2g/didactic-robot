@@ -1,24 +1,11 @@
 {
-  "name": "@didactic/types",
-  "version": "0.0.1",
   "name": "@didactic-robot/types",
   "version": "0.1.0",
-  "private": false,
+  "private": true,
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": ["dist"],
-  "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "clean": "rm -rf dist",
-    "lint": "eslint \"src/**/*.{ts,tsx}\"",
-    "typecheck": "tsc --noEmit",
-    "format": "prettier --check \"src/**/*.{ts,tsx}\""
-  },
-  "devDependencies": {
-    "eslint": "^8.57.0",
-    "prettier": "^3.2.5",
-    "typescript": "^5.4.0"
   "scripts": {
     "build": "tsc --project tsconfig.json",
     "typecheck": "tsc --noEmit --project tsconfig.json"
