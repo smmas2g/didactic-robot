@@ -116,6 +116,8 @@ export default function GameCanvas(): JSX.Element {
   const touchState = useRef<DirectionState>({ up: false, down: false, left: false, right: false });
   const currentVector = useRef<MoveVector>({ moveX: 0, moveY: 0 });
   const lastSentVector = useRef<MoveVector>({ moveX: NaN, moveY: NaN });
+  const lastSentAt = useRef<number>(0);
+  const movementLoopRef = useRef<number | null>(null);
 
   const [connected, setConnected] = useState(client.isConnected());
   const [fallbackSnapshot, setFallbackSnapshot] = useState<ClientStateSnapshot | null>(null);
@@ -155,23 +157,65 @@ export default function GameCanvas(): JSX.Element {
     return () => cancelAnimationFrame(frame);
   }, [connected, networkPlayerCount]);
 
+  const sendMovementVector = useCallback(
+    (vector: MoveVector) => {
+      client.sendInput(vector.moveX, vector.moveY, false);
+      lastSentVector.current = vector;
+      lastSentAt.current = performance.now();
+    },
+    [client]
+  );
+
+  const ensureMovementLoop = useCallback(() => {
+    if (movementLoopRef.current !== null) {
+      return;
+    }
+
+    const tick = (time: number) => {
+      const nextFrame = requestAnimationFrame(tick);
+      movementLoopRef.current = nextFrame;
+
+      const vector = currentVector.current;
+      const isMoving = vector.moveX !== 0 || vector.moveY !== 0;
+      const shouldResend = isMoving && time - lastSentAt.current >= 100;
+
+      if (shouldResend) {
+        sendMovementVector(vector);
+        return;
+      }
+
+      if (!isMoving && time - lastSentAt.current >= 200) {
+        cancelAnimationFrame(nextFrame);
+        movementLoopRef.current = null;
+      }
+    };
+
+    movementLoopRef.current = requestAnimationFrame(tick);
+  }, [sendMovementVector]);
+
+  const stopMovementLoop = useCallback(() => {
+    if (movementLoopRef.current !== null) {
+      cancelAnimationFrame(movementLoopRef.current);
+      movementLoopRef.current = null;
+    }
+  }, []);
+
   const updateMovement = useCallback(() => {
     const combined = combineDirections(keyboardState.current, touchState.current);
     const nextVector = directionFromState(combined);
 
-    if (
-      Number.isFinite(lastSentVector.current.moveX) &&
-      Math.abs(lastSentVector.current.moveX - nextVector.moveX) < 0.001 &&
-      Math.abs(lastSentVector.current.moveY - nextVector.moveY) < 0.001
-    ) {
-      currentVector.current = nextVector;
-      return;
-    }
-
-    client.sendInput(nextVector.moveX, nextVector.moveY, false);
-    lastSentVector.current = nextVector;
     currentVector.current = nextVector;
-  }, [client]);
+    ensureMovementLoop();
+
+    const hasChanged =
+      !Number.isFinite(lastSentVector.current.moveX) ||
+      Math.abs(lastSentVector.current.moveX - nextVector.moveX) >= 0.001 ||
+      Math.abs(lastSentVector.current.moveY - nextVector.moveY) >= 0.001;
+
+    if (hasChanged) {
+      sendMovementVector(nextVector);
+    }
+  }, [ensureMovementLoop, sendMovementVector]);
 
   useEffect(() => {
     updateMovement();
@@ -181,7 +225,6 @@ export default function GameCanvas(): JSX.Element {
     const vector = currentVector.current;
     const targetId = findTagTarget(client, TAG_TARGET_RADIUS);
     client.sendInput(vector.moveX, vector.moveY, true, targetId);
-    client.sendInput(vector.moveX, vector.moveY, false);
   }, [client]);
 
   const handleDirectionalChange = useCallback(
@@ -260,6 +303,10 @@ export default function GameCanvas(): JSX.Element {
       window.removeEventListener("keyup", handleKeyUp);
     };
   }, [triggerDash, updateMovement]);
+
+  useEffect(() => () => {
+    stopMovementLoop();
+  }, [stopMovementLoop]);
 
   useEffect(() => {
     if (!canvasRef.current || appRef.current) {
