@@ -12,7 +12,11 @@
       {
         "name": "next"
       }
-    ]
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "@didactic/types": ["../../packages/types/src"]
+    }
   },
   "include": [
     "next-env.d.ts",
@@ -21,14 +25,5 @@
     "**/*.cjs",
     "**/*.mjs"
   ],
-  "extends": "../../tsconfig.base.json",
-  "compilerOptions": {
-    "baseUrl": ".",
-    "paths": {
-      "@didactic/types": ["../../packages/types/src"]
-    },
-    "types": ["node"]
-  },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
   "exclude": ["node_modules"]
 }
