@@ -1,47 +1,31 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createGameClient } from "../lib/net/client";
+import { getGameClient } from "../lib/net/client";
 
-export function ConnectionBanner() {
-  const [latency, setLatency] = useState<number | null>(null);
+export function ConnectionBanner(): JSX.Element {
   const [connected, setConnected] = useState(false);
+  const [latency, setLatency] = useState<number | null>(null);
 
   useEffect(() => {
-    const client = createGameClient();
-    let handle: ReturnType<typeof setInterval> | undefined;
-
-    function updateLatency() {
-      const value = client.getLatency();
-      setLatency(Number.isFinite(value) ? Math.round(value) : null);
-    }
-
-    const unsubConnection = client.subscribeConnection((isConnected) => {
-      setConnected(isConnected);
+    const client = getGameClient();
+    const unsubscribeConnection = client.subscribeConnection(setConnected);
+    const unsubscribeLatency = client.subscribeLatency((nextLatency) => {
+      setLatency(Number.isFinite(nextLatency) ? Math.round(nextLatency) : null);
     });
-
-    handle = setInterval(updateLatency, 1000);
-    updateLatency();
-
     return () => {
-      unsubConnection();
-      if (handle) clearInterval(handle);
+      unsubscribeConnection();
+      unsubscribeLatency();
     };
   }, []);
 
   return (
     <div className="flex items-center justify-between bg-slate-900 px-4 py-2 text-sm text-slate-200">
       <span className="font-semibold">Connection</span>
-      <span
-        className={
-          connected ? "text-emerald-400" : "animate-pulse text-amber-400"
-        }
-      >
+      <span className={connected ? "text-emerald-400" : "animate-pulse text-amber-400"}>
         {connected ? "Online" : "Reconnecting"}
       </span>
-      <span className="text-slate-400">
-        {latency !== null ? `${latency} ms` : "--"}
-      </span>
+      <span className="text-slate-400">{latency !== null ? `${latency} ms` : "--"}</span>
     </div>
   );
 }
