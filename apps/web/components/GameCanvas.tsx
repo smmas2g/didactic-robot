@@ -1,163 +1,12 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import type {
-  CSSProperties,
-  Dispatch,
-  MutableRefObject,
-  PointerEvent as ReactPointerEvent,
-  SetStateAction,
-} from "react";
-import { Container, Graphics, Stage, useTick } from "@pixi/react";
-import type { Graphics as PixiGraphics } from "pixi.js";
-
-type Vector2 = {
-  x: number;
-  y: number;
-};
-
-export interface GameCanvasProps {
-  width?: number;
-  height?: number;
-}
-
-const DEFAULT_WIDTH = 800;
-const DEFAULT_HEIGHT = 600;
-const JOYSTICK_RADIUS = 60;
-const PLAYER_SPEED = 3;
-
-const normalizeVector = (vector: Vector2): Vector2 => {
-  const magnitude = Math.hypot(vector.x, vector.y);
-  if (magnitude === 0) {
-    return { x: 0, y: 0 };
-  }
-
-  return {
-    x: vector.x / magnitude,
-    y: vector.y / magnitude,
-  };
-};
-
-const clamp = (value: number, min: number, max: number) =>
-  Math.min(Math.max(value, min), max);
-
-interface PlayerControllerProps {
-  width: number;
-  height: number;
-  playerPosition: Vector2;
-  setPlayerPosition: Dispatch<SetStateAction<Vector2>>;
-  keyboardDirectionRef: MutableRefObject<Vector2>;
-  joystickVectorRef: MutableRefObject<Vector2>;
-}
-
-const PlayerController = ({
-  width,
-  height,
-  playerPosition,
-  setPlayerPosition,
-  keyboardDirectionRef,
-  joystickVectorRef,
-}: PlayerControllerProps) => {
-  useTick((delta) => {
-    const keyboard = keyboardDirectionRef.current;
-    const joystick = joystickVectorRef.current;
-    const direction = getCombinedDirection(keyboard, joystick);
-
-    if (direction.x === 0 && direction.y === 0) {
-      return;
-    }
-
-    setPlayerPosition((prev) => ({
-      x: clamp(prev.x + direction.x * PLAYER_SPEED * delta, 20, width - 20),
-      y: clamp(prev.y + direction.y * PLAYER_SPEED * delta, 20, height - 20),
-    }));
-  });
-
-  const drawPlayer = useCallback((graphics: PixiGraphics) => {
-    graphics.clear();
-    graphics.beginFill(0x4ade80);
-    graphics.drawCircle(0, 0, 20);
-    graphics.endFill();
-  }, []);
-
-  return (
-    <Container x={playerPosition.x} y={playerPosition.y}>
-      <Graphics draw={drawPlayer} />
-    </Container>
-  );
-};
-
-const getKeyboardDirection = (keys: Set<string>): Vector2 => {
-  const direction: Vector2 = { x: 0, y: 0 };
-
-  if (keys.has("KeyW")) direction.y -= 1;
-  if (keys.has("KeyS")) direction.y += 1;
-  if (keys.has("KeyA")) direction.x -= 1;
-  if (keys.has("KeyD")) direction.x += 1;
-
-  return normalizeVector(direction);
-};
-
-const getCombinedDirection = (keyboard: Vector2, joystick: Vector2): Vector2 => {
-  const combined = { x: keyboard.x + joystick.x, y: keyboard.y + joystick.y };
-  const magnitude = Math.hypot(combined.x, combined.y);
-
-  if (magnitude === 0) {
-    return { x: 0, y: 0 };
-  }
-
-  if (magnitude <= 1) {
-    return combined;
-  }
-
-  return {
-    x: combined.x / magnitude,
-    y: combined.y / magnitude,
-  };
-};
-
-export const GameCanvas = ({
-  width = DEFAULT_WIDTH,
-  height = DEFAULT_HEIGHT,
-}: GameCanvasProps) => {
-  const [playerPosition, setPlayerPosition] = useState<Vector2>({
-    x: width / 2,
-    y: height / 2,
-  });
-  const pressedKeysRef = useRef<Set<string>>(new Set());
-  const keyboardDirectionRef = useRef<Vector2>({ x: 0, y: 0 });
-  const joystickVectorRef = useRef<Vector2>({ x: 0, y: 0 });
-  const [joystickState, setJoystickState] = useState({
-    active: false,
-    offsetX: 0,
-    offsetY: 0,
-  });
-  const joystickPointerId = useRef<number | null>(null);
-
-  const updateKeyboardDirection = useCallback(() => {
-    keyboardDirectionRef.current = getKeyboardDirection(
-      pressedKeysRef.current,
-    );
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return undefined;
-    }
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (["KeyW", "KeyA", "KeyS", "KeyD"].includes(event.code)) {
-        pressedKeysRef.current.add(event.code);
-        updateKeyboardDirection();
-import { Application, Graphics } from "pixi.js";
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import type { GameInputState, GameStateSnapshot } from "@didactic-robot/types";
+import { Application, Graphics } from "pixi.js";
+import type {
+  GameInputState,
+  GameStateSnapshot,
+} from "@didactic-robot/types";
+
 import { createGameClient } from "../lib/net/client";
 import { useGameStore } from "../lib/net/state";
 import { MobileControls } from "./MobileControls";
@@ -191,7 +40,7 @@ function buildFallbackState(time: number): GameStateSnapshot {
   };
 }
 
-export default function GameCanvas() {
+export default function GameCanvas(): JSX.Element {
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const appRef = useRef<Application | null>(null);
   const clientRef = useRef(createGameClient());
@@ -212,11 +61,13 @@ export default function GameCanvas() {
   }, []);
 
   const updateDirection = useCallback(
-    (direction: Partial<Pick<GameInputState, "up" | "down" | "left" | "right">>) => {
+    (
+      direction: Partial<Pick<GameInputState, "up" | "down" | "left" | "right">>,
+    ) => {
       Object.assign(inputRef.current, direction);
       pushInput();
     },
-    [pushInput]
+    [pushInput],
   );
 
   const triggerDash = useCallback(() => {
@@ -227,12 +78,12 @@ export default function GameCanvas() {
 
   useEffect(() => {
     const client = clientRef.current;
-    const unsubState = client.subscribeState((nextSnapshot) => {
+    const unsubscribe = client.subscribeState((nextSnapshot) => {
       setSnapshot(nextSnapshot);
     });
 
     return () => {
-      unsubState();
+      unsubscribe();
     };
   }, [setSnapshot]);
 
@@ -251,7 +102,9 @@ export default function GameCanvas() {
     frameId = requestAnimationFrame(animate);
 
     return () => {
-      if (frameId) cancelAnimationFrame(frameId);
+      if (frameId !== null) {
+        cancelAnimationFrame(frameId);
+      }
       if (!useGameStore.getState().snapshot) {
         setSnapshot(null);
       }
@@ -259,9 +112,12 @@ export default function GameCanvas() {
   }, [setSnapshot]);
 
   const ensureApp = useCallback(() => {
-    if (!canvasRef.current || appRef.current) return;
+    if (!canvasRef.current || appRef.current) {
+      return;
+    }
 
     const app = new Application();
+
     void app.init({
       background: "#020617",
       resizeTo: canvasRef.current,
@@ -290,7 +146,9 @@ export default function GameCanvas() {
       container.drawRoundedRect(40, 40, 520, 320, 24);
       container.endFill();
 
-      if (!nextSnapshot) return;
+      if (!nextSnapshot) {
+        return;
+      }
 
       nextSnapshot.orbs.forEach((orb) => {
         container.beginFill(0xfacc15, 1);
@@ -303,7 +161,10 @@ export default function GameCanvas() {
         container.drawCircle(player.x, player.y, 12);
         container.endFill();
 
-        container.lineStyle({ width: 2, color: player.isTagger ? 0xf87171 : 0x38bdf8 });
+        container.lineStyle({
+          width: 2,
+          color: player.isTagger ? 0xf87171 : 0x38bdf8,
+        });
         container.drawCircle(player.x, player.y, player.isTagger ? 18 : 14);
         container.lineStyle({ width: 0 });
       });
@@ -320,6 +181,7 @@ export default function GameCanvas() {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.repeat) return;
+
       switch (event.key) {
         case "w":
         case "ArrowUp":
@@ -347,9 +209,6 @@ export default function GameCanvas() {
     };
 
     const handleKeyUp = (event: KeyboardEvent) => {
-      if (["KeyW", "KeyA", "KeyS", "KeyD"].includes(event.code)) {
-        pressedKeysRef.current.delete(event.code);
-        updateKeyboardDirection();
       switch (event.key) {
         case "w":
         case "ArrowUp":
@@ -379,175 +238,31 @@ export default function GameCanvas() {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [updateKeyboardDirection]);
-
-  const handleJoystickUpdate = useCallback((offsetX: number, offsetY: number) => {
-    const clampedX = clamp(offsetX, -JOYSTICK_RADIUS, JOYSTICK_RADIUS);
-    const clampedY = clamp(offsetY, -JOYSTICK_RADIUS, JOYSTICK_RADIUS);
-    const magnitude = Math.hypot(clampedX, clampedY);
-
-    if (magnitude === 0) {
-      joystickVectorRef.current = { x: 0, y: 0 };
-    } else {
-      const intensity = Math.min(magnitude, JOYSTICK_RADIUS) / JOYSTICK_RADIUS;
-      joystickVectorRef.current = {
-        x: (clampedX / magnitude) * intensity,
-        y: (clampedY / magnitude) * intensity,
-      };
-    }
-
-    setJoystickState((state) => ({
-      ...state,
-      offsetX: clampedX,
-      offsetY: clampedY,
-    }));
-  }, []);
-
-  const resetJoystick = useCallback(() => {
-    joystickPointerId.current = null;
-    joystickVectorRef.current = { x: 0, y: 0 };
-    setJoystickState((state) => ({ ...state, active: false, offsetX: 0, offsetY: 0 }));
-  }, []);
-
-  const handlePointerDown = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
-    if (joystickPointerId.current !== null) {
-      return;
-    }
-
-    event.preventDefault();
-    const rect = (event.currentTarget as HTMLDivElement).getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    joystickPointerId.current = event.pointerId;
-
-    handleJoystickUpdate(event.clientX - centerX, event.clientY - centerY);
-    setJoystickState((state) => ({ ...state, active: true }));
-    (event.currentTarget as HTMLDivElement).setPointerCapture(event.pointerId);
-  }, [handleJoystickUpdate]);
-
-  const handlePointerMove = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
-    if (joystickPointerId.current !== event.pointerId) {
-      return;
-    }
-
-    event.preventDefault();
-    const rect = (event.currentTarget as HTMLDivElement).getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    handleJoystickUpdate(event.clientX - centerX, event.clientY - centerY);
-  }, [handleJoystickUpdate]);
-
-  const handlePointerUp = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
-    if (joystickPointerId.current !== event.pointerId) {
-      return;
-    }
-
-    event.preventDefault();
-    (event.currentTarget as HTMLDivElement).releasePointerCapture(event.pointerId);
-    resetJoystick();
-  }, [resetJoystick]);
-
-  const joystickStyles = useMemo<CSSProperties[]>(() => {
-    const baseStyle: CSSProperties = {
-      width: JOYSTICK_RADIUS * 2,
-      height: JOYSTICK_RADIUS * 2,
-      borderRadius: "50%",
-      background: "rgba(255, 255, 255, 0.1)",
-      border: "2px solid rgba(255, 255, 255, 0.2)",
-      position: "relative",
-      touchAction: "none",
-    };
-
-    const knobStyle: CSSProperties = {
-      width: JOYSTICK_RADIUS,
-      height: JOYSTICK_RADIUS,
-      borderRadius: "50%",
-      background: joystickState.active
-        ? "rgba(74, 222, 128, 0.8)"
-        : "rgba(255, 255, 255, 0.5)",
-      position: "absolute",
-      left: "50%",
-      top: "50%",
-      transform: `translate(calc(-50% + ${joystickState.offsetX / 2}px), calc(-50% + ${joystickState.offsetY / 2}px))`,
-      transition: joystickState.active ? "none" : "transform 150ms ease",
-    };
-
-    return [baseStyle, knobStyle];
-  }, [joystickState]);
-
-  return (
-    <div
-      style={{
-        position: "relative",
-        width,
-        height,
-        maxWidth: "100%",
-        background: "#10132d",
-        borderRadius: 12,
-        overflow: "hidden",
-      }}
-    >
-      <Stage
-        width={width}
-        height={height}
-        options={{
-          backgroundAlpha: 0,
-          antialias: true,
-        }}
-      >
-        <PlayerController
-          width={width}
-          height={height}
-          playerPosition={playerPosition}
-          setPlayerPosition={setPlayerPosition}
-          keyboardDirectionRef={keyboardDirectionRef}
-          joystickVectorRef={joystickVectorRef}
-        />
-      </Stage>
-
-      <div
-        style={{
-          position: "absolute",
-          left: 24,
-          bottom: 24,
-        }}
-      >
-        <div
-          role="application"
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerUp}
-          style={joystickStyles[0]}
-        >
-          <div style={joystickStyles[1]} />
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default GameCanvas;
   }, [triggerDash, updateDirection]);
 
-  useEffect(() => () => {
-    const app = appRef.current;
-    if (app) {
-      app.destroy(true);
-      appRef.current = null;
-    }
-  }, []);
+  useEffect(
+    () => () => {
+      const app = appRef.current;
+      if (app) {
+        app.destroy(true);
+        appRef.current = null;
+      }
+    },
+    [],
+  );
 
   const roundTime = snapshot?.roundTimeRemaining ?? 0;
   const players = useMemo(() => {
-    return Object.values(snapshot?.players ?? {}).sort((a, b) => b.score - a.score);
+    return Object.values(snapshot?.players ?? {}).sort(
+      (a, b) => b.score - a.score,
+    );
   }, [snapshot]);
 
   const handleDirectionalChange = useCallback(
     (direction: Partial<Record<"up" | "down" | "left" | "right", boolean>>) => {
       updateDirection(direction);
     },
-    [updateDirection]
+    [updateDirection],
   );
 
   const handleEmote = useCallback((emoji: string) => {

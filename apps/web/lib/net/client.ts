@@ -12,11 +12,17 @@ interface Events {
 
 class GameClient {
   private client: Client | null = null;
+
   private room: Room<GameStateSnapshot> | null = null;
+
   private emitter = mitt<Events>();
+
   private latency = Infinity;
+
   private heartbeat?: ReturnType<typeof setInterval>;
+
   private pendingPings = new Map<string, number>();
+
   private sessionId: string | null = null;
 
   connect() {
@@ -29,14 +35,20 @@ class GameClient {
   }
 
   private async joinRoom() {
+    if (!this.client) {
+      return;
+    }
+
     try {
-      this.room = await this.client!.joinOrCreate<GameStateSnapshot>("game");
+      this.room = await this.client.joinOrCreate<GameStateSnapshot>("game");
       this.sessionId = this.room.sessionId;
       this.pendingPings.clear();
       this.emitter.emit("connection", true);
+
       this.room.onStateChange((state) => {
         this.emitter.emit("state", JSON.parse(JSON.stringify(state)));
       });
+
       this.room.onMessage("pong", (payload: { nonce: string }) => {
         const started = this.pendingPings.get(payload.nonce);
         if (started) {
@@ -45,16 +57,18 @@ class GameClient {
           this.emitter.emit("connection", true);
         }
       });
+
       this.room.onLeave(() => {
-        this.sessionId = null;
-        this.room = null;
-        this.emitter.emit("connection", false);
-        if (this.heartbeat) {
-          clearInterval(this.heartbeat);
-          this.heartbeat = undefined;
-        }
+        this.handleDisconnect();
         setTimeout(() => this.joinRoom(), 1000);
       });
+
+      this.room.onError((code, message) => {
+        console.error("Room error", code, message);
+        this.handleDisconnect();
+        setTimeout(() => this.joinRoom(), 1500);
+      });
+
       this.setupHeartbeat();
     } catch (error) {
       console.error("Failed to connect to game room", error);
@@ -63,8 +77,19 @@ class GameClient {
     }
   }
 
+  private handleDisconnect() {
+    this.sessionId = null;
+    this.room = null;
+    this.emitter.emit("connection", false);
+    if (this.heartbeat) {
+      clearInterval(this.heartbeat);
+      this.heartbeat = undefined;
+    }
+  }
+
   private setupHeartbeat() {
     if (!this.room) return;
+
     const room = this.room;
     this.latency = Infinity;
     if (this.heartbeat) {
@@ -113,48 +138,10 @@ class GameClient {
 
 let singleton: GameClient | null = null;
 
-export function createGameClient() {
+export function createGameClient(): GameClient {
   if (!singleton) {
     singleton = new GameClient();
     singleton.connect();
   }
   return singleton;
-import { Client } from "colyseus.js";
-
-let client: Client | null = null;
-
-const DEFAULT_ENDPOINT = "ws://localhost:2567";
-
-function resolveEndpoint(): string {
-  const explicitEndpoint =
-    process.env.NEXT_PUBLIC_COLYSEUS_ENDPOINT ??
-    process.env.NEXT_PUBLIC_SERVER_URL;
-
-  if (explicitEndpoint && explicitEndpoint.trim().length > 0) {
-    return explicitEndpoint;
-  }
-
-  if (typeof window !== "undefined" && window.location) {
-    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-    const host = window.location.host;
-    return `${protocol}://${host}`;
-  }
-
-  return DEFAULT_ENDPOINT;
-}
-
-export function getColyseusClient(): Client {
-  if (typeof window === "undefined") {
-    throw new Error("getColyseusClient must be used in the browser.");
-  }
-
-  if (!client) {
-    client = new Client(resolveEndpoint());
-  }
-
-  return client;
-}
-
-export function resetColyseusClient(): void {
-  client = null;
 }
