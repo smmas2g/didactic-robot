@@ -2,9 +2,6 @@
   "name": "@didactic/web",
   "private": true,
   "version": "0.1.0",
-  "name": "web",
-  "version": "0.1.0",
-  "private": true,
   "type": "module",
   "scripts": {
     "dev": "next dev",
@@ -16,9 +13,13 @@
   },
   "dependencies": {
     "@didactic/types": "workspace:*",
+    "colyseus.js": "^0.15.23",
+    "mitt": "^3.0.1",
     "next": "^14.2.3",
+    "pixi.js": "^8.5.2",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "zustand": "^4.5.4"
   },
   "devDependencies": {
     "@types/node": "^20.11.30",
@@ -31,22 +32,5 @@
     "prettier": "^3.2.5",
     "tailwindcss": "^3.4.3",
     "typescript": "^5.4.0"
-    "typecheck": "tsc --project tsconfig.json --noEmit"
-  },
-  "dependencies": {
-    "colyseus.js": "^0.15.23",
-    "mitt": "^3.0.1",
-    "next": "^15.0.3",
-    "pixi.js": "^8.5.2",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "zustand": "^4.5.4"
-  },
-  "devDependencies": {
-    "@types/node": "^22.7.5",
-    "@types/react": "^19.0.2",
-    "@types/react-dom": "^19.0.2",
-    "tailwindcss": "^3.4.13",
-    "typescript": "^5.6.3"
   }
 }

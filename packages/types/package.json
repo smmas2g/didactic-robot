@@ -1,7 +1,5 @@
 {
   "name": "@didactic/types",
-  "version": "0.0.1",
-  "name": "@didactic-robot/types",
   "version": "0.1.0",
   "private": false,
   "type": "module",
@@ -19,11 +17,5 @@
     "eslint": "^8.57.0",
     "prettier": "^3.2.5",
     "typescript": "^5.4.0"
-  "scripts": {
-    "build": "tsc --project tsconfig.json",
-    "typecheck": "tsc --noEmit --project tsconfig.json"
-  },
-  "devDependencies": {
-    "typescript": "^5.6.3"
   }
 }
