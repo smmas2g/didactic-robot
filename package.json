@@ -1,5 +1,14 @@
 {
   "name": "didactic-robot",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "build": "pnpm -r build"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
   "version": "0.0.0",
   "private": true,
   "type": "module",
