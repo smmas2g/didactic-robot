@@ -3,7 +3,7 @@
 import mitt from "mitt";
 import type { Client, Room } from "colyseus.js";
 import { Client as ColyseusClient } from "colyseus.js";
-import type { GameStateSnapshot } from "@didactic-robot/types";
+import type { GameStateSnapshot } from "@didactic/types";
 
 interface Events {
   connection: boolean;

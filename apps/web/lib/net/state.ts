@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import type { GameStateSnapshot } from "@didactic-robot/types";
+import type { GameStateSnapshot } from "@didactic/types";
 
 interface GameStore {
   snapshot: GameStateSnapshot | null;

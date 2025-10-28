@@ -157,7 +157,7 @@ export const GameCanvas = ({
         updateKeyboardDirection();
 import { Application, Graphics } from "pixi.js";
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import type { GameInputState, GameStateSnapshot } from "@didactic-robot/types";
+import type { GameInputState, GameStateSnapshot } from "@didactic/types";
 import { createGameClient } from "../lib/net/client";
 import { useGameStore } from "../lib/net/state";
 import { MobileControls } from "./MobileControls";
