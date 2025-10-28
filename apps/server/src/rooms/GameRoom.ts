@@ -1,206 +1,78 @@
-import { Client, Room } from "colyseus";
-import { World, TICK_INTERVAL_MS, InputIntent } from "../game/index.js";
-
-interface JoinOptions {
-  name?: string;
-}
-
-export class GameRoom extends Room<World> {
-  maxClients = 16;
-
-  onCreate() {
-    this.setState(new World());
-
-    this.setSimulationInterval((deltaTime) => {
-      this.state.update(deltaTime);
-    }, TICK_INTERVAL_MS);
-
-    this.onMessage("input", (client, intent: InputIntent) => {
-      this.handleIntent(client, intent);
-    });
-  }
-
-  onJoin(client: Client, options: JoinOptions) {
-    const name = (options?.name ?? "Player").slice(0, 24);
-    this.state.addPlayer(client.sessionId, name);
-  }
-
-  onLeave(client: Client) {
-    this.state.removePlayer(client.sessionId);
-  }
-
-  private handleIntent(client: Client, intent: InputIntent) {
-    this.state.enqueueIntent(client.sessionId, intent);
-import { Room, Client } from "colyseus";
-import { Schema, type, MapSchema } from "@colyseus/schema";
-import type { PlayerId } from "@didactic/types";
+import { ArraySchema, MapSchema, Schema, type } from "@colyseus/schema";
+import type { Client } from "colyseus";
+import { Room } from "colyseus";
 
 class Player extends Schema {
-  @type("string")
-  id!: PlayerId;
+  @type("number")
+  x = 0;
 
-  @type("string")
-  name = "Anonymous";
+  @type("number")
+  y = 0;
 }
 
-class State extends Schema {
+class Orb extends Schema {
+  @type("number")
+  x = 0;
+
+  @type("number")
+  y = 0;
+}
+
+class GameState extends Schema {
   @type({ map: Player })
   players = new MapSchema<Player>();
+
+  @type([Orb])
+  orbs = new ArraySchema<Orb>();
 }
 
-export class GameRoom extends Room<State> {
-  maxClients = 16;
+const MAP_SIZE = 100;
+const ORB_COUNT = 10;
+const UPDATE_INTERVAL_MS = 500;
 
+export class GameRoom extends Room<GameState> {
   onCreate(): void {
-    this.setState(new State());
+    this.setState(new GameState());
+    this.populateOrbs();
+
+    this.setSimulationInterval(() => {
+      this.mutateState();
+    }, UPDATE_INTERVAL_MS);
+
+    this.onMessage("ping", (client, payload: { nonce?: string }) => {
+      client.send("pong", payload ?? {});
+    });
   }
 
   onJoin(client: Client): void {
     const player = new Player();
-    player.id = client.sessionId;
-    this.state.players.set(player.id, player);
+    player.x = Math.random() * MAP_SIZE;
+    player.y = Math.random() * MAP_SIZE;
+    this.state.players.set(client.sessionId, player);
   }
 
   onLeave(client: Client): void {
     this.state.players.delete(client.sessionId);
   }
-import { ArraySchema, MapSchema, Schema, type } from "@colyseus/schema";
-import { Room, Client } from "colyseus";
-import type { GameInputState, GameStateSnapshot } from "@didactic-robot/types";
-import { World } from "../game/World.js";
 
-class PlayerState extends Schema {
-  @type("string")
-  id!: string;
-
-  @type("string")
-  name!: string;
-
-  @type("number")
-  x = 0;
-
-  @type("number")
-  y = 0;
-
-  @type("string")
-  color = "#38bdf8";
-
-  @type("number")
-  score = 0;
-
-  @type("boolean")
-  isTagger = false;
-}
-
-class OrbState extends Schema {
-  @type("string")
-  id!: string;
-
-  @type("number")
-  x = 0;
-
-  @type("number")
-  y = 0;
-}
-
-class InputState extends Schema {
-  @type("string")
-  id!: string;
-
-  @type("number")
-  sequence = 0;
-}
-
-class GameState extends Schema {
-  @type({ map: PlayerState })
-  players = new MapSchema<PlayerState>();
-
-  @type([OrbState])
-  orbs = new ArraySchema<OrbState>();
-
-  @type([InputState])
-  inputs = new ArraySchema<InputState>();
-
-  @type("number")
-  roundTimeRemaining = 180;
-}
-
-const PLAYER_COLORS = ["#38bdf8", "#f97316", "#22c55e", "#a855f7", "#f472b6", "#facc15"];
-
-export class GameRoom extends Room<GameState> {
-  maxClients = 20;
-  private world = new World();
-
-  onCreate() {
-    this.setState(new GameState());
-    this.onMessage("input", (client, message: GameInputState) => {
-      this.world.applyInput(client.sessionId, message);
-      this.trackInput(message);
-    });
-
-    this.onMessage("ping", (client, payload: { nonce: string }) => {
-      client.send("pong", payload);
-    });
-
-    this.setSimulationInterval((deltaTime) => {
-      this.world.update(deltaTime / 1000);
-      this.syncState(this.world.toSnapshot());
-    }, 50);
-  }
-
-  onJoin(client: Client) {
-    const color = PLAYER_COLORS[this.clients.length % PLAYER_COLORS.length];
-    this.world.addPlayer(client.sessionId, `Racer ${this.clients.length}`, color);
-  }
-
-  onLeave(client: Client) {
-    this.world.removePlayer(client.sessionId);
-    this.state.players.delete(client.sessionId);
-  }
-
-  private trackInput(input: GameInputState) {
-    const summary = new InputState();
-    summary.id = input.id;
-    summary.sequence = input.sequence;
-    this.state.inputs.push(summary);
-    if (this.state.inputs.length > 10) {
-      this.state.inputs.shift();
+  private populateOrbs(): void {
+    while (this.state.orbs.length < ORB_COUNT) {
+      const orb = new Orb();
+      orb.x = Math.random() * MAP_SIZE;
+      orb.y = Math.random() * MAP_SIZE;
+      this.state.orbs.push(orb);
     }
   }
 
-  private syncState(snapshot: GameStateSnapshot) {
-    this.state.roundTimeRemaining = snapshot.roundTimeRemaining;
-
-    // Sync players
-    const seen = new Set(Object.keys(snapshot.players));
-    Array.from(this.state.players.keys()).forEach((id) => {
-      if (!seen.has(id)) {
-        this.state.players.delete(id);
-      }
+  private mutateState(): void {
+    this.state.players.forEach((player) => {
+      player.x = (player.x + (Math.random() - 0.5) * 5 + MAP_SIZE) % MAP_SIZE;
+      player.y = (player.y + (Math.random() - 0.5) * 5 + MAP_SIZE) % MAP_SIZE;
     });
 
-    Object.values(snapshot.players).forEach((player) => {
-      let current = this.state.players.get(player.id);
-      if (!current) {
-        current = new PlayerState();
-        current.id = player.id;
-        current.name = player.name;
-        this.state.players.set(player.id, current);
-      }
-      current.x = player.x;
-      current.y = player.y;
-      current.color = player.color;
-      current.score = player.score;
-      current.isTagger = player.isTagger;
-    });
-
-    this.state.orbs.splice(0, this.state.orbs.length);
-    snapshot.orbs.forEach((orb) => {
-      const stateOrb = new OrbState();
-      stateOrb.id = orb.id;
-      stateOrb.x = orb.x;
-      stateOrb.y = orb.y;
-      this.state.orbs.push(stateOrb);
-    });
+    for (const orb of this.state.orbs) {
+      orb.x = (orb.x + (Math.random() - 0.5) * 3 + MAP_SIZE) % MAP_SIZE;
+      orb.y = (orb.y + (Math.random() - 0.5) * 3 + MAP_SIZE) % MAP_SIZE;
+    }
   }
 }
