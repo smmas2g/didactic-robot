@@ -1,3 +1,9 @@
+export type PlayerId = string;
+
+export interface RoomMessage<TPayload = unknown> {
+  type: string;
+  payload: TPayload;
+}
 export interface GamePlayerState {
   id: string;
   name: string;
