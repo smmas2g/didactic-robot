@@ -1,13 +1,22 @@
 {
-  "name": "didactic-robot-shared",
+  "name": "@didactic-robot/shared",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json"
+    "build": "tsc -p tsconfig.build.json",
+    "lint": "eslint \"src/**/*.{ts,tsx}\"",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "format": "prettier --check \"src/**/*.{ts,tsx}\""
   },
+  "dependencies": {},
   "devDependencies": {
-    "typescript": "^5.4.5"
+    "@types/node": "^20.16.11",
+    "eslint": "^8.57.1",
+    "prettier": "^3.3.3",
+    "typescript": "^5.6.3"
   }
 }
